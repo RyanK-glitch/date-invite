@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Date With Me?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+    /* Layout: one centered card on a warm sunset sky, flipping through ask → plan → done */
+    :root {
+        --sky-1: #ffb199;   /* peach */
+        --sky-2: #ff8fb1;   /* rose */
+        --sky-3: #c3a4ff;   /* lilac */
+        --card: rgba(255, 250, 247, 0.9);
+        --field: #ffffff;
+        --rose: #f0426e;
+        --rose-deep: #d42a5a;
+        --blush: #ffd3dc;
+        --petal: #fff0f3;
+        --gold: #ffb84d;
+        --ink: #3d2140;
+        --muted: #8a6b85;
+        --font-display: 'Fraunces', Georgia, serif;
+        --font-body: 'Nunito', system-ui, sans-serif;
+        color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+
+    body {
+        font-family: var(--font-body);
+        background-color: var(--sky-2);
+        background-image: linear-gradient(135deg, var(--sky-1) 0%, var(--sky-2) 50%, var(--sky-3) 100%);
+        background-size: 200% 200%;
+        animation: sky 18s ease-in-out infinite;
+        color: var(--ink);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        padding-block: 32px;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+        overflow-x: hidden;
+        text-align: center;
+    }
+    @keyframes sky {
+        0%, 100% { background-position: 0% 30%; }
+        50% { background-position: 100% 70%; }
+    }
+
+    /* Soft glowing blobs + floating hearts behind the card */
+    .glow { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .glow i {
+        position: absolute;
+        width: 46vmax;
+        height: 46vmax;
+        border-radius: 50%;
+        filter: blur(70px);
+        opacity: .55;
+        animation: drift 22s ease-in-out infinite alternate;
+    }
+    .glow i:nth-child(1) { background: #ffd29d; top: -18vmax; left: -12vmax; }
+    .glow i:nth-child(2) { background: #ff6f9c; bottom: -20vmax; right: -14vmax; animation-delay: -8s; }
+    .glow i:nth-child(3) { background: #a98bff; top: 35%; left: 55%; width: 30vmax; height: 30vmax; animation-delay: -14s; opacity: .4; }
+    @keyframes drift {
+        from { transform: translate(0, 0) scale(1); }
+        to   { transform: translate(6vmax, 4vmax) scale(1.15); }
+    }
+    .hearts { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .hearts span {
+        position: absolute;
+        bottom: -40px;
+        color: #fff;
+        opacity: 0;
+        text-shadow: 0 2px 8px rgba(212, 42, 90, .25);
+        animation: floatUp linear infinite;
+    }
+    @keyframes floatUp {
+        0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+        10%  { opacity: var(--o, .5); }
+        90%  { opacity: var(--o, .5); }
+        100% { transform: translateY(-110vh) rotate(25deg); opacity: 0; }
+    }
+
+    .container {
+        position: relative;
+        z-index: 1;
+        background: var(--card);
+        backdrop-filter: blur(18px) saturate(1.2);
+        -webkit-backdrop-filter: blur(18px) saturate(1.2);
+        border: 1.5px solid rgba(255, 255, 255, .85);
+        padding: 28px 32px 34px;
+        border-radius: 32px;
+        box-shadow: 0 1px 0 rgba(255, 255, 255, .9) inset,
+                    0 30px 60px -20px rgba(120, 30, 80, .45),
+                    0 10px 24px -12px rgba(212, 42, 90, .35);
+        max-width: 480px;
+        width: 100%;
+        min-height: 460px;
+        animation: popIn .8s cubic-bezier(.2, .9, .3, 1.3) both;
+    }
+    @keyframes popIn {
+        from { transform: scale(.85) translateY(24px); opacity: 0; }
+        to   { transform: none; opacity: 1; }
+    }
+    .step { animation: stepIn .55s cubic-bezier(.2, .9, .3, 1.2) both; }
+    @keyframes stepIn {
+        from { transform: translateY(16px); opacity: 0; }
+        to   { transform: none; opacity: 1; }
+    }
+
+    /* Ask → Plan → Done progress */
+    .progress {
+        list-style: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 18px;
+        padding: 0;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+    .progress li { display: flex; align-items: center; gap: 6px; }
+    .progress li + li::before {
+        content: "";
+        width: 22px;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--blush);
+    }
+    .progress .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--blush);
+        transition: background .3s, transform .3s;
+    }
+    .progress li.on { color: var(--rose); }
+    .progress li.on .dot { background: var(--rose); transform: scale(1.2); box-shadow: 0 0 0 4px rgba(240, 66, 110, .15); }
+
+    .eyebrow {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--rose-deep);
+        background: var(--petal);
+        border: 1px solid var(--blush);
+        padding: 5px 12px;
+        border-radius: 999px;
+        margin: 0 0 10px;
+    }
+
+    /* Illustration */
+    .art { width: 140px; height: 140px; margin: 0 auto 8px; filter: drop-shadow(0 12px 16px rgba(212, 42, 90, .3)); }
+    .art.small { width: 84px; height: 84px; margin-bottom: 6px; }
+    .art svg { width: 100%; height: 100%; overflow: visible; }
+    .beat { transform-origin: 50% 55%; animation: beat 1.4s ease-in-out infinite; }
+    @keyframes beat {
+        0%, 100% { transform: scale(1); }
+        15% { transform: scale(1.08); }
+        30% { transform: scale(.98); }
+        45% { transform: scale(1.05); }
+    }
+    .sparkle { animation: twinkle 2s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+    .sparkle.s2 { animation-delay: .6s; }
+    .sparkle.s3 { animation-delay: 1.2s; }
+    @keyframes twinkle {
+        0%, 100% { opacity: .2; transform: scale(.6); }
+        50% { opacity: 1; transform: scale(1); }
+    }
+
+    h1, h2 {
+        font-family: var(--font-display);
+        font-weight: 600;
+        color: var(--ink);
+        line-height: 1.2;
+        margin: 0 0 10px;
+        text-wrap: balance;
+    }
+    h1 { font-size: 30px; }
+    h2 { font-size: 26px; }
+    h1 em, h2 em {
+        font-style: italic;
+        font-weight: 500;
+        background: linear-gradient(120deg, var(--rose) 0%, #ff8a5c 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .sub {
+        color: var(--muted);
+        font-size: 15px;
+        margin: 0 0 26px;
+        min-height: 1.4em;
+    }
+
+    .buttons {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 16px;
+        min-height: 64px;
+    }
+    button {
+        font-family: inherit;
+        padding: 14px 32px;
+        font-size: 17px;
+        font-weight: 800;
+        border: none;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: transform .25s cubic-bezier(.2, .9, .3, 1.4), box-shadow .2s, filter .2s, background .2s, color .2s, border-color .2s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, .chip input:focus-visible + span {
+        outline: 3px solid var(--rose);
+        outline-offset: 2px;
+    }
+    .primary {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #ff7a9c 0%, var(--rose) 45%, var(--rose-deep) 100%);
+        color: #fff;
+        box-shadow: 0 10px 22px -8px rgba(212, 42, 90, .7), 0 1px 0 rgba(255, 255, 255, .4) inset;
+    }
+    .primary::after {
+        content: "";
+        position: absolute;
+        top: 0; bottom: 0;
+        left: -60%;
+        width: 40%;
+        background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent);
+        transform: skewX(-20deg);
+        animation: shine 3.2s ease-in-out infinite;
+    }
+    @keyframes shine {
+        0%, 60% { left: -60%; }
+        100% { left: 130%; }
+    }
+    .primary:hover { filter: brightness(1.06); box-shadow: 0 14px 28px -8px rgba(212, 42, 90, .8); }
+    .primary:disabled { filter: saturate(.7); opacity: .8; cursor: wait; }
+    #yesBtn { transform: scale(var(--grow, 1)); z-index: 2; }
+    #noBtn {
+        background: var(--field);
+        color: var(--muted);
+        border: 2px solid var(--blush);
+        transition: left .3s cubic-bezier(.2, .9, .3, 1.2), top .3s cubic-bezier(.2, .9, .3, 1.2), transform .25s;
+    }
+    #noBtn.loose { position: absolute; }
+
+    /* Plan form */
+    form { display: grid; gap: 22px; text-align: left; }
+    fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 10px; }
+    legend, label.lbl {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--rose-deep);
+        padding: 0;
+        margin-bottom: 10px;
+    }
+    legend .opt, label.lbl .opt {
+        font-size: 11px;
+        letter-spacing: .04em;
+        text-transform: none;
+        font-weight: 700;
+        color: var(--muted);
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row > div { display: grid; gap: 6px; min-width: 0; }
+    .row .hint { font-size: 13px; color: var(--muted); font-weight: 700; }
+    input[type="date"], input[type="time"], input[type="text"], textarea {
+        width: 100%;
+        min-width: 0;
+        font: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--ink);
+        background: var(--field);
+        border: 2px solid var(--blush);
+        border-radius: 16px;
+        padding: 12px 14px;
+        box-shadow: 0 2px 6px -3px rgba(120, 30, 80, .15);
+        transition: border-color .2s, box-shadow .2s;
+    }
+    input::placeholder, textarea::placeholder { color: #b9a0b3; font-weight: 500; }
+    input:focus, textarea:focus { border-color: var(--rose); outline: none; box-shadow: 0 0 0 4px rgba(240, 66, 110, .15); }
+    textarea { resize: vertical; min-height: 88px; font-weight: 500; }
+
+    .quick { display: flex; flex-wrap: wrap; gap: 6px; }
+    .quick button {
+        padding: 7px 13px;
+        font-size: 13px;
+        font-weight: 700;
+        background: var(--petal);
+        color: var(--ink);
+        border: 1.5px solid var(--blush);
+    }
+    .quick button:hover { border-color: var(--rose); transform: translateY(-1px); }
+    .quick button.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+    /* Kind-of-date tiles */
+    .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .chip { position: relative; min-width: 0; }
+    .chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+    .chip span {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        height: 100%;
+        padding: 12px 4px 10px;
+        border-radius: 18px;
+        border: 2px solid var(--blush);
+        background: var(--field);
+        font-weight: 800;
+        font-size: 12px;
+        line-height: 1.2;
+        text-align: center;
+        color: var(--ink);
+        box-shadow: 0 2px 6px -3px rgba(120, 30, 80, .15);
+        transition: background .2s, border-color .2s, transform .2s, box-shadow .2s, color .2s;
+    }
+    .chip span i { font-style: normal; font-size: 26px; line-height: 1; transition: transform .25s cubic-bezier(.2, .9, .3, 1.6); }
+    .chip:hover span { transform: translateY(-2px); border-color: #ffb3c4; }
+    .chip input:checked + span {
+        background: linear-gradient(160deg, #ff7a9c, var(--rose-deep));
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 10px 20px -8px rgba(212, 42, 90, .7);
+        transform: translateY(-2px);
+    }
+    .chip input:checked + span i { transform: scale(1.2) rotate(-8deg); }
+
+    .error { color: var(--rose-deep); font-weight: 800; font-size: 14px; margin: 0; min-height: 1.2em; text-align: center; }
+    form .primary { justify-self: stretch; margin-top: -6px; padding-block: 16px; font-size: 18px; }
+
+    /* Done card: the plan as a little ticket */
+    .summary {
+        position: relative;
+        display: grid;
+        gap: 12px;
+        text-align: left;
+        background: linear-gradient(180deg, var(--petal), var(--field));
+        border: 2px dashed #ffb3c4;
+        border-radius: 22px;
+        padding: 30px 22px 20px;
+        margin: 12px 0 0;
+    }
+    .summary::before {
+        content: "Our date";
+        position: absolute;
+        top: -13px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ff7a9c, var(--rose-deep));
+        color: #fff;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        padding: 5px 14px;
+        border-radius: 999px;
+        box-shadow: 0 6px 14px -6px rgba(212, 42, 90, .7);
+    }
+    .summary div { display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: center; }
+    .summary dt {
+        width: 36px; height: 36px;
+        display: grid; place-items: center;
+        border-radius: 12px;
+        background: var(--field);
+        border: 1.5px solid var(--blush);
+        font-size: 18px;
+    }
+    .summary dd { margin: 0; font-weight: 800; overflow-wrap: anywhere; }
+    .summary dd small { display: block; font-weight: 600; color: var(--muted); font-size: 13px; }
+
+    .burst {
+        position: fixed;
+        pointer-events: none;
+        z-index: 5;
+        font-size: 22px;
+        animation: burst 1.4s cubic-bezier(.15, .7, .3, 1) forwards;
+    }
+    @keyframes burst {
+        from { transform: translate(-50%, -50%) scale(.4); opacity: 1; }
+        to   { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1) rotate(var(--r)); opacity: 0; }
+    }
+
+    @media (max-width: 440px) {
+        .container { padding: 24px 18px 26px; border-radius: 26px; }
+        h1 { font-size: 26px; }
+        h2 { font-size: 23px; }
+        .chips { grid-template-columns: repeat(2, 1fr); }
+        .chip span { flex-direction: row; justify-content: flex-start; gap: 8px; padding: 11px 12px; font-size: 13px; text-align: left; }
+        .chip span i { font-size: 22px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+</style>
+</head>
+<body>
+
+<div class="glow" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="hearts" id="hearts" aria-hidden="true"></div>
+
+<div class="container" id="mainContainer">
+    <ol class="progress" aria-label="Progress">
+        <li class="on" data-step="ask"><span class="dot"></span>Ask</li>
+        <li data-step="plan"><span class="dot"></span>Plan</li>
+        <li data-step="done"><span class="dot"></span>Done</li>
+    </ol>
+
+    <!-- Step 1: the question -->
+    <section class="step" id="stepAsk">
+        <p class="eyebrow">A very important question</p>
+        <div class="art" aria-hidden="true">
+            <svg viewBox="0 0 140 140">
+                <defs>
+                    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#ff8aa8"/>
+                        <stop offset="1" stop-color="#e0315d"/>
+                    </linearGradient>
+                </defs>
+                <g class="beat">
+                    <path d="M70 118 C 30 92, 14 68, 22 46 C 30 24, 58 22, 70 42 C 82 22, 110 24, 118 46 C 126 68, 110 92, 70 118 Z" fill="url(#hg)"/>
+                    <ellipse cx="44" cy="48" rx="9" ry="6" fill="#fff" opacity=".45" transform="rotate(-30 44 48)"/>
+                    <circle cx="56" cy="70" r="4.5" fill="#4a2c3a"/>
+                    <circle cx="84" cy="70" r="4.5" fill="#4a2c3a"/>
+                    <circle cx="57.5" cy="68.5" r="1.4" fill="#fff"/>
+                    <circle cx="85.5" cy="68.5" r="1.4" fill="#fff"/>
+                    <ellipse cx="48" cy="80" rx="6" ry="3.5" fill="#ffb3c6" opacity=".9"/>
+                    <ellipse cx="92" cy="80" rx="6" ry="3.5" fill="#ffb3c6" opacity=".9"/>
+                    <path id="mouth" d="M63 80 Q 70 87 77 80" stroke="#4a2c3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                </g>
+                <path class="sparkle" d="M120 18 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#ffc94a"/>
+                <path class="sparkle s2" d="M16 96 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#ff8aa8"/>
+                <path class="sparkle s3" d="M126 100 l2 4 4 2 -4 2 -2 4 -2 -4 -4 -2 4 -2z" fill="#ffc94a"/>
+            </svg>
+        </div>
+        <h1 id="questionText">Would you do me the honor of going on a <em>date</em> with me?</h1>
+        <p class="sub" id="subText">No pressure… but also, a little pressure 😊</p>
+        <div class="buttons">
+            <button class="primary" id="yesBtn" type="button">Yes!</button>
+            <button id="noBtn" type="button">No</button>
+        </div>
+    </section>
+
+    <!-- Step 2: plan the date -->
+    <section class="step" id="stepPlan" hidden>
+        <div class="art small" aria-hidden="true">
+            <svg viewBox="0 0 140 140">
+                <g class="beat">
+                    <path d="M70 118 C 30 92, 14 68, 22 46 C 30 24, 58 22, 70 42 C 82 22, 110 24, 118 46 C 126 68, 110 92, 70 118 Z" fill="url(#hg)"/>
+                    <circle cx="56" cy="70" r="4.5" fill="#4a2c3a"/>
+                    <circle cx="84" cy="70" r="4.5" fill="#4a2c3a"/>
+                    <path d="M60 78 Q 70 92 80 78" stroke="#4a2c3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                </g>
+            </svg>
+        </div>
+        <p class="eyebrow">Yay! Now the fun part</p>
+        <h2>You pick, I'll <em>plan</em> it</h2>
+        <p class="sub">Choose whatever feels right. I'll take care of the rest.</p>
+
+        <form id="planForm" novalidate>
+            <fieldset>
+                <legend>🗓️ When works for you?</legend>
+                <div class="row">
+                    <div>
+                        <span class="hint">Day</span>
+                        <input type="date" id="dateInput" name="date" aria-label="Date" required>
+                    </div>
+                    <div>
+                        <span class="hint">Time</span>
+                        <input type="time" id="timeInput" name="time" aria-label="Time" required>
+                    </div>
+                </div>
+                <div class="quick" aria-label="Quick time picks">
+                    <button type="button" data-time="10:30">☀️ Brunch</button>
+                    <button type="button" data-time="13:00">🥪 Lunch</button>
+                    <button type="button" data-time="16:00">🌤️ Afternoon</button>
+                    <button type="button" data-time="19:30">🌙 Evening</button>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>💫 What kind of date?</legend>
+                <div class="chips" id="venueChips">
+                    <label class="chip"><input type="radio" name="venue" id="v-coffee" value="Coffee & dessert"><span><i>☕</i>Coffee & dessert</span></label>
+                    <label class="chip"><input type="radio" name="venue" id="v-dinner" value="Dinner"><span><i>🍝</i>Dinner</span></label>
+                    <label class="chip"><input type="radio" name="venue" id="v-movie" value="Movie night"><span><i>🎬</i>Movie night</span></label>
+                    <label class="chip"><input type="radio" name="venue" id="v-picnic" value="Picnic"><span><i>🧺</i>Picnic</span></label>
+                    <label class="chip"><input type="radio" name="venue" id="v-walk" value="Sunset walk"><span><i>🌅</i>Sunset walk</span></label>
+                    <label class="chip"><input type="radio" name="venue" id="v-art" value="Art & museum"><span><i>🎨</i>Art & museum</span></label>
+                    <label class="chip"><input type="radio" name="venue" id="v-fun" value="Something fun"><span><i>🎳</i>Something fun</span></label>
+                    <label class="chip"><input type="radio" name="venue" id="v-surprise" value="Surprise me"><span><i>✨</i>Surprise me</span></label>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <label class="lbl" for="locationInput">📍 Where? <span class="opt">optional</span></label>
+                <input type="text" id="locationInput" name="location" maxlength="140" placeholder="A favorite spot, a neighborhood, or “you choose”">
+            </fieldset>
+
+            <fieldset>
+                <label class="lbl" for="noteInput">💌 A little note for me <span class="opt">optional</span></label>
+                <textarea id="noteInput" name="note" maxlength="600" placeholder="Allergies, favorite flowers, things you'd love to do…"></textarea>
+            </fieldset>
+
+            <p class="error" id="formError" role="alert"></p>
+            <button class="primary" id="sendBtn" type="submit">Lock it in 💌</button>
+        </form>
+    </section>
+
+    <!-- Step 3: done -->
+    <section class="step" id="stepDone" hidden>
+        <div class="art small" aria-hidden="true">
+            <svg viewBox="0 0 140 140">
+                <g class="beat">
+                    <path d="M70 118 C 30 92, 14 68, 22 46 C 30 24, 58 22, 70 42 C 82 22, 110 24, 118 46 C 126 68, 110 92, 70 118 Z" fill="url(#hg)"/>
+                    <path d="M50 70 Q 56 64 62 70" stroke="#4a2c3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    <path d="M78 70 Q 84 64 90 70" stroke="#4a2c3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    <path d="M60 80 Q 70 94 80 80" stroke="#4a2c3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                </g>
+                <path class="sparkle" d="M120 18 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z" fill="#ffc94a"/>
+                <path class="sparkle s2" d="M16 96 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#ff8aa8"/>
+            </svg>
+        </div>
+        <p class="eyebrow">It's official</p>
+        <h2>It's a <em>date</em>! 🎉</h2>
+        <p class="sub">Can't wait. I'll text you the details ❤️</p>
+        <dl class="summary" id="summary"></dl>
+    </section>
+</div>
+
+<script>
+    const container = document.getElementById('mainContainer');
+    const noBtn = document.getElementById('noBtn');
+    const yesBtn = document.getElementById('yesBtn');
+    const subText = document.getElementById('subText');
+    const mouth = document.getElementById('mouth');
+    const steps = {
+        ask: document.getElementById('stepAsk'),
+        plan: document.getElementById('stepPlan'),
+        done: document.getElementById('stepDone')
+    };
+
+    const pleas = [
+        "Are you sure? 🥺",
+        "Think about it one more time…",
+        "The Yes button is right there 👉",
+        "I'll bring snacks!",
+        "Okay now you're just playing 😅",
+        "Pretty please? 💕",
+        "You can't catch it anyway 😌"
+    ];
+    let tries = 0;
+
+    function showStep(name) {
+        Object.entries(steps).forEach(([key, el]) => { el.hidden = key !== name; });
+        const order = Object.keys(steps);
+        document.querySelectorAll('.progress li').forEach(li => {
+            li.classList.toggle('on', order.indexOf(li.dataset.step) <= order.indexOf(name));
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Gentle hearts drifting up the background
+    const hearts = document.getElementById('hearts');
+    for (let i = 0; i < 18; i++) {
+        const h = document.createElement('span');
+        h.textContent = '♥';
+        h.style.left = Math.random() * 100 + 'vw';
+        h.style.fontSize = 12 + Math.random() * 22 + 'px';
+        h.style.animationDuration = 9 + Math.random() * 10 + 's';
+        h.style.animationDelay = -Math.random() * 18 + 's';
+        h.style.setProperty('--o', (0.15 + Math.random() * 0.3).toFixed(2));
+        hearts.appendChild(h);
+    }
+
+    // Make the No button run away (stays inside the card)
+    function dodgeButton(e) {
+        if (e) e.preventDefault();
+
+        if (!noBtn.classList.contains('loose')) {
+            const c = container.getBoundingClientRect();
+            const b = noBtn.getBoundingClientRect();
+            noBtn.style.left = (b.left - c.left) + 'px';
+            noBtn.style.top = (b.top - c.top) + 'px';
+            noBtn.classList.add('loose');
+            noBtn.offsetWidth;
+        }
+
+        const pad = 16;
+        const maxX = container.clientWidth - noBtn.offsetWidth - pad;
+        const maxY = container.clientHeight - noBtn.offsetHeight - pad;
+        noBtn.style.left = pad + Math.random() * (maxX - pad) + 'px';
+        noBtn.style.top = pad + Math.random() * (maxY - pad) + 'px';
+
+        subText.textContent = pleas[tries % pleas.length];
+        tries++;
+        yesBtn.style.setProperty('--grow', Math.min(1 + tries * 0.12, 1.8));
+        noBtn.style.transform = `scale(${Math.max(1 - tries * 0.06, 0.6)})`;
+        mouth.setAttribute('d', 'M63 84 Q 70 78 77 84'); // little frown
+    }
+
+    noBtn.addEventListener('mouseenter', dodgeButton);
+    noBtn.addEventListener('touchstart', dodgeButton, { passive: false });
+    noBtn.addEventListener('click', dodgeButton);
+
+    function heartBurst(fromEl) {
+        const r = fromEl.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const glyphs = ['💖', '💕', '❤️', '✨', '💗', '🌸'];
+        for (let i = 0; i < 36; i++) {
+            const p = document.createElement('span');
+            p.className = 'burst';
+            p.textContent = glyphs[i % glyphs.length];
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 120 + Math.random() * 220;
+            p.style.left = cx + 'px';
+            p.style.top = cy + 'px';
+            p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+            p.style.setProperty('--dy', Math.sin(angle) * dist - 60 + 'px');
+            p.style.setProperty('--r', (Math.random() * 120 - 60) + 'deg');
+            p.style.animationDelay = Math.random() * 0.15 + 's';
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 1700);
+        }
+    }
+
+    // What happens when she clicks Yes
+    yesBtn.addEventListener('click', () => {
+        heartBurst(yesBtn);
+        mouth.setAttribute('d', 'M60 78 Q 70 92 80 78'); // big smile
+        noBtn.hidden = true;
+        yesBtn.disabled = true;
+        subText.textContent = "Yay! Okay, one more thing…";
+        setTimeout(() => showStep('plan'), 1100);
+    });
+
+    // Plan form
+    const form = document.getElementById('planForm');
+    const dateInput = document.getElementById('dateInput');
+    const timeInput = document.getElementById('timeInput');
+    const formError = document.getElementById('formError');
+    const sendBtn = document.getElementById('sendBtn');
+
+    const today = new Date();
+    const pad2 = n => String(n).padStart(2, '0');
+    dateInput.min = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}-${pad2(today.getDate())}`;
+
+    const quickBtns = document.querySelectorAll('.quick button');
+    const markQuick = () => quickBtns.forEach(b => b.classList.toggle('active', b.dataset.time === timeInput.value));
+    quickBtns.forEach(b => {
+        b.addEventListener('click', () => { timeInput.value = b.dataset.time; formError.textContent = ''; markQuick(); });
+    });
+    timeInput.addEventListener('input', markQuick);
+
+    function prettyWhen(date, time) {
+        const d = new Date(`${date}T${time || '12:00'}`);
+        if (isNaN(d)) return `${date} ${time}`;
+        const day = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+        const t = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        return { day, t };
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const venue = form.querySelector('input[name="venue"]:checked');
+        if (!dateInput.value) { formError.textContent = 'Pick a day first 📅'; dateInput.focus(); return; }
+        if (!timeInput.value) { formError.textContent = 'What time works? Pick one of the quick options or set a time.'; timeInput.focus(); return; }
+        if (!venue) { formError.textContent = 'Choose what kind of date sounds fun 💭'; return; }
+        formError.textContent = '';
+
+        const answer = {
+            date: dateInput.value,
+            time: timeInput.value,
+            venue: venue.value,
+            location: document.getElementById('locationInput').value.trim(),
+            note: document.getElementById('noteInput').value.trim(),
+            noAttempts: tries,
+            submittedAt: new Date().toISOString()
+        };
+
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Saving…';
+        await saveAnswer(answer);
+        renderDone(answer);
+        heartBurst(sendBtn);
+        showStep('done');
+    });
+
+    // Save to the SQLite database through server.py
+    async function saveAnswer(answer) {
+        if (location.protocol === 'file:') return false;
+        try {
+            const res = await fetch('/api/responses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(answer)
+            });
+            return res.ok;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function renderDone(a) {
+        const w = prettyWhen(a.date, a.time);
+        const rows = [
+            ['📅', w.day, w.t],
+            ['💫', a.venue, null],
+            ['📍', a.location || 'You choose', null],
+        ];
+        if (a.note) rows.push(['💌', a.note, null]);
+
+        const summary = document.getElementById('summary');
+        summary.replaceChildren();
+        rows.forEach(([icon, main, extra]) => {
+            const div = document.createElement('div');
+            const dt = document.createElement('dt');
+            dt.textContent = icon;
+            const dd = document.createElement('dd');
+            dd.textContent = main;
+            if (extra) {
+                const s = document.createElement('small');
+                s.textContent = extra;
+                dd.appendChild(s);
+            }
+            div.append(dt, dd);
+            summary.appendChild(div);
+        });
+    }
+</script>
+
+</body>
+</html>

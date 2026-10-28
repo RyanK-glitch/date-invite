@@ -1,0 +1,7 @@
+# Her answers and the admin key stay on this computer
+date.db
+*.db-journal
+.admin_key
+
+.DS_Store
+__pycache__/
